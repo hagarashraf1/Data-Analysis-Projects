@@ -16,13 +16,14 @@ order by TotalRevenue desc
 
 
 -- 2. Music Sales Analysis
--- Total sales for geners
-select g.name , sum(inv.total) as 'sales_per_genre' from genre g 
+-- Total sales per each genre
+select g.name , sum(inl.UnitPrice*inl.Quantity)  as 'SalesPerGenre'
+from genre g 
 join track t on t.GenreId = g.GenreId
 join InvoiceLine inl on t.TrackId = inl.TrackId
-join Invoice inv on inl.InvoiceId = inv.InvoiceId
 group by g.name
-order by sum(inv.total) desc
+order by SalesPerGenre desc
+
 
 -- SO WHICH GENREs OF MUSIC IS MOST SOLD IN USA'n. 1'?
 select top 5 g.name, sum(il.quantity) as TotalSold
@@ -50,7 +51,7 @@ order by TotalSold desc
 -- it's (rock and latin) in both counteries, better to compose and produce more of them
 
 
-------------------------------------------------------
+-------------------------------------------------------------------------------------------------
 
 --2. Employee Performance
 --employee count based on their title
@@ -60,7 +61,7 @@ GROUP BY Title
 ORDER BY NumberOfEmployees DESC;
 
 --Total Sales by Employees(Sales Support Agents)
-select e.FirstName, e.LastName, e.HireDate, sum(i.Total) AS totalSales
+select e.FirstName, e.LastName, e.HireDate,COUNT(distinct c.customerid) AS NumberOfCustomers, sum(i.Total) AS TotalSales 
 from employee e
 join Customer c on e.EmployeeId=c.SupportRepId
 join Invoice i on i.CustomerId=c.CustomerId
@@ -87,29 +88,13 @@ ORDER BY TotalSales desc
 -- despite Jan is the best seller overall
 -- she was the worst of the 3 sellers with a big difference the last 2 months
 
--- Employee has the Highest Total Number of Customers
-select top 1 e.EmployeeId ,e.firstname + ' '+ e.LastName as FUllName, count(c.CustomerId) as totalCustomers 
-from employee e
-inner join Customer c on e.EmployeeId = c.SupportRepId
-group by e.EmployeeId ,e.firstname, e.lastname
-order by totalCustomers desc
--- give him a bonus or a raise
-
-
--- Employee has the lowest Total Number of Customers
-select top 1 e.EmployeeId ,e.firstname + ' '+ e.LastName as FUllName, count(c.CustomerId) as totalCustomers 
-from employee e
-inner join Customer c on e.EmployeeId = c.SupportRepId
-group by e.EmployeeId ,e.firstname, e.lastname
-order by totalCustomers 
--- the range between the highest and lowest employee is not wide,, indicates good choice of staff
-
---------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
 
 -- 3. Tracks and Artists Analysis
 
----top 10 in sells have which lengnth
-select top 10 t.Name,
+---top 10 in sells have which Song_length_minutes
+select top 10
+t.Name,
 (t.Milliseconds/60000.0) as Song_length_minutes,
 SUM(il.UnitPrice * il.Quantity) as TotalRevenue
 from Track t
@@ -117,24 +102,25 @@ join InvoiceLine il on t.TrackId=il.TrackId
 group by t.Name, t.Milliseconds
 order by TotalRevenue desc
 
--- Not Sold Tracks
+-- Not sold Tracks
 select  t.trackid, t.name, count(inl.trackid) as 'sales_count'  from track t
 left join  invoiceline inl on inl.TrackId = t.TrackId
 group by t.trackid , t.Name
 having  count(inl.trackid) =0
 order by t.name 
 
--- Sales of each Artist
-select ar.name , sum(inv.total) as 'sales per artist' from artist ar 
-join Album al on ar.ArtistId = al.ArtistId 
-join track t on t.albumid = al.albumid 
-join Invoiceline inl on inl.trackid  = t.TrackId
-join Invoice inv  on inl.InvoiceId = inv.InvoiceId
-group by  ar.name
-order by sum(inv.total) desc;
+-- sales of each artist
+SELECT ar.Name AS 'Artist', SUM(inl.UnitPrice * inl.Quantity) AS 'Sales Per Artist'
+FROM Artist ar
+JOIN  Album al ON ar.ArtistId = al.ArtistId
+JOIN Track t ON t.AlbumId = al.AlbumId
+JOIN  InvoiceLine inl ON inl.TrackId = t.TrackId
+JOIN Invoice inv ON inl.InvoiceId = inv.InvoiceId
+GROUP BY ar.Name
+ORDER BY 'Sales Per Artist' DESC;
 
 
---Each artist is in how many playlists and how many unique tracks are there? 
+--each artist is in how many playlists and how many unique tracks are there? 
 -- artist popularity based on playlist inclusion and the variety of their music used in playlists.
 SELECT 
   ar.name AS Artist,
@@ -146,7 +132,6 @@ JOIN track t ON t.AlbumId=al.AlbumId
 JOIN PlaylistTrack pt ON t.TrackId=pt.TrackId
 GROUP BY  ar.name
 ORDER BY number_of_playlists DESC, unique_tracks DESC
-
 
 -- How many tracks have been purchased vs not purchased?
 with all_purchased_tracks as(
@@ -167,8 +152,8 @@ count(distinct AllTracks) - count(distinct PurchasedTracks) as NotPurchasedTrack
 from all_purchased_tracks
 
 
---Total sales in each year
-select YEAR (invoicedate) as 'year'  , sum(total) as 'total_sales' from Invoice
-group by  YEAR (invoicedate)
-order by  YEAR (invoicedate)
+-- Sales trend Over Years
+select YEAR (invoicedate) as 'year', sum(total) as 'total_sales' from Invoice
+group by YEAR (invoicedate)
+order by YEAR (invoicedate)
 
